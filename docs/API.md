@@ -13,7 +13,7 @@
 | POST `/api/menus/generate` | `week, version` | 无旧菜单直接生成；有旧菜单则产生待确认建议 |
 | POST `/api/menus/replace` | `week, date, kind, recipeId, version` | 同类合规替换，立即生效并保留撤销版本 |
 | POST `/api/menus/undo` | `week, version` | 在当前档案/规则仍允许时恢复上一版菜单 |
-| POST `/api/chat` | `text, week` | 真实模型理解意图，后台校验；可能返回 `proposal` 或反馈记录 |
+| POST `/api/chat` | `text, week` | 明确指令校验后直接保存；只有 execution=preview 时保留待确认建议。自动执行的 proposal 带 automatic=true、status=confirmed |
 | POST `/api/proposals/confirm` | `id` | 同时检查数据修订号与菜单版本，然后应用建议 |
 | POST `/api/proposals/cancel` | `id` | 取消建议 |
 | GET `/api/shopping?start=…&end=…` | 日期范围 | 派生采购清单，返回对应菜单版本 |
@@ -21,7 +21,9 @@
 | POST `/api/imports/confirm` | `revision, id, records` | 确认校正记录；同成员同日确认记录被新记录替代 |
 | POST `/api/imports/resolve` | `id` | 只对重复的晚餐提出调整，不自动覆盖 |
 | POST `/api/recipes/draft` | `type, text, image?` | 真实模型生成新菜草稿 |
-| POST `/api/recipes/save` | `revision, recipe, confirm` | 保存/确认草稿；已确认菜谱暂不提供覆盖编辑 |
+| POST `/api/recipes/save` | `revision, recipe, confirm` | 经 MCP 保存新草稿、确认或更新已确认菜谱；recipe.knowledgeVersion 防止旧表单覆盖，旧版本留存 |
+| GET `/api/knowledge/search?q=…&status=…` | 关键词、all/draft/confirmed | 经 MCP 查询菜名、食材、标签、做法、来源 |
+| GET `/api/knowledge/history?id=…` | 稳定菜谱 ID | 经 MCP 返回历次完整版本，按版本倒序 |
 | POST `/api/feedback` | `memberId, date, meal, text` | 保存单次反馈 |
 | POST `/api/feedback/confirm` | `revision, id` | 确认长期禁用建议 |
 | POST `/api/agent/config` | `provider, baseUrl, model, apiKey` | 后台保存连接；空 Key 保留已有值，不返回 Key |
@@ -40,6 +42,10 @@
 
 ## Agent 的职责
 
-Pi 可调用 get_kitchen_context、find_recipes、preview_menu_adjustment、get_shopping_list 及按文章范围提供的 read_source_image，然后返回固定 schema 的操作意图、午餐识别或菜谱草稿。菜单计算、份量缩放、硬约束、保存和采购在服务端执行。模型失败时显示错误，不把本地模板回复冒充真实模型结果。新菜和外部午餐必须经过确认才能参与排菜。
+Pi 可调用 get_kitchen_context、find_recipes、preview_menu_adjustment、preview_kitchen_update、get_shopping_list 及按文章范围提供的 read_source_image，然后返回固定 schema 的操作意图、午餐识别或菜谱草稿。菜单计算、份量缩放、硬约束、保存和采购在服务端执行。模型失败时显示错误，不把本地模板回复冒充真实模型结果。新菜和外部午餐必须经过确认才能参与排菜。
 
 共享网关要求 `Authorization: Bearer <组员口令>`，口令错误返回 401，次数过多返回 429，来源不允许或远程改模型配置返回 403。模型 Key 永远不作为此口令使用。
+
+## 菜谱知识迁移
+
+`recipe_knowledge` 是当前菜谱，`recipe_knowledge_history` 保留版本，`knowledge_migration` 保存首次迁移前完整状态。原有 recipes 字段迁移一次，普通应用状态保存不再写菜谱；菜谱变更经 MCP 原子保存，并同时递增全局 revision。网页 state 的菜谱由 MCP 查询返回。详见《Agent与知识库架构》。

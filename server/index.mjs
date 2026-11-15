@@ -4,15 +4,19 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createStore } from './store.mjs';
-import { dateInZone, nextWeek, addDays, MEALS } from './seed.mjs';
+import { dateInZone, nextWeek, addDays, MEALS, MEAL_NAMES } from './seed.mjs';
 import { fail, validDate, validWeek, buildMeals, commitMenu, replaceDish, validateMeals, shopping, makeProposal, contextFor, normalize, validateRecipe, allMeals } from './domain.mjs';
 import { agentInfo, saveAgentConfiguration, runAgent, intentSchema, importSchema, recipeSchema } from './agent.mjs';
 import { readSource } from './wechat-source.mjs';
 import { kitchenTools } from './kitchen-tools.mjs';
+import { validateMember, validateImport, validateSettings, validateDocument, editableContext, updateInstructions, makeKitchenUpdateProposal, applyKitchenUpdate, applyDirectKitchenUpdate, recordChat } from './kitchen-updates.mjs';
 import { nutritionSummary, POSITIVE_RULE_VERSION } from './nutrition.mjs';
+import { createKnowledgeClient } from './knowledge-client.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const store = createStore(process.env.KITCHEN_DB || path.join(root, 'data/kitchen.sqlite'));
+const databasePath = process.env.KITCHEN_DB || path.join(root, 'data/kitchen.sqlite');
+const store = createStore(databasePath);
+const knowledge = createKnowledgeClient(databasePath);
 const port = Number(process.env.PORT || 4317);
 const seed = store.load();
 if (seed.revision === 0 && !Object.keys(seed.menus).length) {
@@ -34,27 +38,23 @@ async function body(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { fail('请求内容不是有效 JSON。'); }
 }
 function expected(state, value) { if (state.revision !== value) fail('数据已变化，请刷新后重试。', 409); }
-function stateView(state) {
+async function stateView(state) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const result = await knowledge.call('knowledge_search_recipes', { query: '', status: 'all' });
+    if (result.revision === state.revision) { state.recipes = result.recipes; break; }
+    state = store.load();
+    if (attempt === 2) fail('厨房数据正在更新，请稍后刷新。', 409);
+  }
   const checks = {};
   for (const [week, menu] of Object.entries(state.menus)) checks[week] = validateMeals(state, menu.meals, allMeals(state).filter(m => m.date < week || m.date > addDays(week, 6)));
-  return { ...state, nutrition: Object.fromEntries(Object.keys(state.menus).map(week => [week, nutritionSummary(state, week)])), today: dateInZone(new Date(), state.settings.timezone), defaultWeek: nextWeek(dateInZone(new Date(), state.settings.timezone)), agent: agentInfo(), checks };
-}
-function validateImport(state, draft) {
-  validWeek(draft.week);
-  if (!state.members.some(m => m.id === draft.memberId)) fail('请选择适用成员。');
-  if (!draft.records?.length || draft.records.length > 7) fail('请填写本周 1–7 天的午餐。');
-  const dates = new Set();
-  for (const r of draft.records) {
-    validDate(r.date);
-    if (r.date < draft.week || r.date > addDays(draft.week, 6) || r.meal !== 'lunch' || dates.has(r.date)) fail('日期必须在选定周内，每天只保留一条午餐记录。');
-    dates.add(r.date);
-    if (!Array.isArray(r.dishes) || !r.dishes.length || r.dishes.some(d => typeof d !== 'string' || !d.trim() || d.length > 80)) fail('请填写午餐菜名。');
-  }
+  return { ...state, knowledge: { connected: true, transport: 'stdio', name: '买汰烧菜谱知识库', versioned: true }, nutrition: Object.fromEntries(Object.keys(state.menus).map(week => [week, nutritionSummary(state, week)])), today: dateInZone(new Date(), state.settings.timezone), defaultWeek: nextWeek(dateInZone(new Date(), state.settings.timezone)), agent: agentInfo(), checks };
 }
 async function handleApi(req, res, url) {
   const route = url.pathname;
   if (req.method === 'GET') {
-    if (route === '/api/state') return json(res, stateView(store.load()));
+    if (route === '/api/state') return json(res, await stateView(store.load()));
+    if (route === '/api/knowledge/history') return json(res, await knowledge.call('knowledge_recipe_history', { id: url.searchParams.get('id') || '' }));
+    if (route === '/api/knowledge/search') return json(res, await knowledge.call('knowledge_search_recipes', { query: url.searchParams.get('q') || '', status: url.searchParams.get('status') || 'all' }));
     if (route === '/api/health') return json(res, { ok: true, app: 'family-kitchen', agent: agentInfo() });
     if (route === '/api/shopping') return json(res, shopping(store.load(), url.searchParams.get('start'), url.searchParams.get('end')));
     fail('接口不存在。', 404);
@@ -82,21 +82,26 @@ async function handleApi(req, res, url) {
     const proposal = state.proposals.find(p => p.id === data.id && p.status === 'pending');
     if (!proposal) fail('建议不存在或已处理。');
     expected(state, proposal.baseRevision);
+    if (proposal.kind === 'kitchen_update') {
+      result.message = '修改已确认。后续排菜会使用新资料，已有菜单请查看核对提示。';
+      if (proposal.changes.some(c => c.target === 'recipe')) {
+        await knowledge.call('knowledge_confirm_proposal', { id: proposal.id, revision: state.revision });
+        return json(res, { ...result, state: await stateView(store.load()) });
+      }
+      applyKitchenUpdate(state, proposal);
+    } else {
     Object.assign(state.overrides, proposal.overrides);
     const issues = validateMeals(state, proposal.meals, allMeals(state).filter(m => m.date < proposal.week || m.date > addDays(proposal.week, 6)));
     if (issues.length) fail(issues.join('；'), 422);
     commitMenu(state, proposal.week, proposal.meals, proposal.menuVersion, '确认调整建议');
     proposal.status = 'confirmed'; result.message = '调整已确认，采购清单将按新菜单计算。';
+    }
   } else if (route === '/api/proposals/cancel') {
     const proposal = state.proposals.find(p => p.id === data.id); if (proposal) proposal.status = 'cancelled';
   } else if (route === '/api/members/save') {
     expected(state, data.revision);
     const member = data.member, index = state.members.findIndex(m => m.id === member.id);
-    if (!member.name?.trim() || !Number.isFinite(member.age) || member.age < 0 || member.age > 120 || !Number.isFinite(member.portion) || member.portion <= 0 || member.portion > 5) fail('请核对姓名、年龄和默认饭量（0–5 份）。');
-    for (const key of ['likes', 'dislikes', 'allergies', 'restrictions']) if (!Array.isArray(member[key]) || member[key].some(x => typeof x !== 'string' || x.length > 60)) fail('档案标签格式无效。');
-    if (!Array.isArray(member.profileTags) || member.profileTags.length > 30 || member.profileTags.some(x => typeof x !== 'string' || !x.trim() || x.length > 30)) fail('成员标签最多 30 个，每个不超过 30 字。');
-    if (member.avatar && (typeof member.avatar !== 'string' || member.avatar.length > 1500000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(member.avatar))) fail('成员形象需为有效图片，请使用小于 1MB 的 PNG、JPEG 或 WebP。');
-    if (!Array.isArray(member.schedule) || member.schedule.length !== 7 || member.schedule.some(s => MEALS.some(k => typeof s[k] !== 'boolean'))) fail('请填写完整的每周用餐规律。');
+    validateMember(member);
     if (index < 0) { if (state.members.length >= 12) fail('Demo 最多支持 12 名成员。'); state.members.push({ ...member, id: randomUUID(), color: 'peach' }); }
     else state.members[index] = { ...member, id: state.members[index].id };
     result.message = '档案已保存。已生成菜单保留原样，变化会提示待重新核对。';
@@ -110,11 +115,11 @@ async function handleApi(req, res, url) {
     validWeek(data.week);
     const text = String(data.text || '').trim(); if (!text || text.length > 3000) fail('请输入 1–3000 字的消息。');
     const snapshotRevision = state.revision;
-    let preview;
+    let preview, updatePreview;
     const context = { today: dateInZone(new Date(), state.settings.timezone), selectedWeek: data.week, weekEnd: addDays(data.week, 6), members: state.members.map(({ avatar, ...member }) => member),
       recipes: state.recipes.filter(r => r.status === 'confirmed').map(r => ({ id: r.id, name: r.name, category: r.category, tags: r.tags })), rules: state.rules,
-      menu: state.menus[data.week] || null, history: state.messages.slice(-10).map(m => ({ role: m.role, text: m.text })) };
-    const output = await runAgent(`把用户指令转换为厨房操作。只有明确要求调整菜单时 action=adjust_menu；明确某成员出席或缺席时 attendance；家人用餐感受或以后别做等反馈为 feedback。否则 answer。有歧义先提问，不能猜。日期语义：周三等未指明周次的星期在 selectedWeek 内；今天/明天基于 today，超出选定周时 answer 提醒切换。调整一餐不能扩大到全周。生成一周是 adjust_menu 且全周/all。同一条含多项不支持的复杂操作先澄清。份量数字未明确为道数时不要猜 dishCount。默认 dishCount=0、requestedRecipeName=""、style=""、memberId=""、present=true、feedbackScope=temporary、avoidFood=""。清淡=light。不支持的营养精确数值不要承诺。requestedRecipeName 必须使用用户指定的菜名。feedback 仅明确“以后不吃/别做”才 long_term 且 avoidFood 为食材或菜名；一次感受为 temporary，无法确定为 unclear。start/end 都必须 YYYY-MM-DD。解释将提出建议，不能说已经修改。\n上下文：${JSON.stringify(context)}\n用户消息：${text}`, intentSchema, undefined, { customTools: kitchenTools(state, data.week, value => { preview = value; }) });
+      editable: editableContext(state), menu: state.menus[data.week] || null, history: state.messages.slice(-10).map(m => ({ role: m.role, text: m.text })) };
+    const output = await runAgent(`把用户指令转换为厨房操作。只有明确要求调整菜单时 action=adjust_menu；明确某成员出席或缺席时 attendance；家人用餐感受或以后别做等反馈为 feedback。明确修改家庭档案或其他表单时 update_kitchen；长期新增/移除偏好、标签、过敏、忌口优先 update_kitchen，单次用餐感受仍为 feedback。否则 answer。有歧义先提问，不能猜。日期语义：周三等未指明周次的星期在 selectedWeek 内；今天/明天基于 today，超出选定周时 answer 提醒切换。调整一餐不能扩大到全周。生成一周是 adjust_menu 且全周/all。同一条含多项不支持的复杂操作先澄清。份量数字未明确为道数时不要猜 dishCount。默认 dishCount=0、requestedRecipeName=""、style=""、memberId=""、present=true、feedbackScope=temporary、avoidFood=""。清淡=light。不支持的营养精确数值不要承诺。requestedRecipeName 必须使用用户指定的菜名。feedback 仅明确“以后不吃/别做”才 long_term 且 avoidFood 为食材或菜名；一次感受为 temporary，无法确定为 unclear。start/end 都必须 YYYY-MM-DD。执行模式默认 execution=apply，明确指令校验通过后由后台直接保存，无需再次确认；只有用户明确说先预览/先给建议/等我确认/不要保存时 execution=preview。含糊不清时 action=answer 只询问，不猜。内部试排工具不是要求用户确认。reply 简要说明动作，最终是否保存由后台结果确定。${updateInstructions}\n上下文：${JSON.stringify(context)}\n用户消息：${text}`, intentSchema, undefined, { customTools: kitchenTools(state, data.week, value => { preview = value; }, value => { updatePreview = value; }, knowledge) });
     state = store.load(); expected(state, snapshotRevision);
     const intent = output.data;
     let reply = intent.reply;
@@ -135,8 +140,30 @@ async function handleApi(req, res, url) {
           }
         }
         result.proposal = makeProposal(state, data.week, { start: intent.start, end: intent.end, meal: intent.meal, style: intent.style, dishCount: intent.dishCount, requestedRecipeName: intent.requestedRecipeName }, reply, overrides, intent.action === 'adjust_menu' && preview && Object.keys(preview.options).every(key => preview.options[key] === intent[key]) ? preview.meals : undefined);
-        reply += '\n调整建议已准备好，确认后才会修改菜单。';
+        if (intent.execution === 'preview') reply += '\n按你的要求先展示预览，确认后才会修改菜单。';
+        else {
+          const proposal = result.proposal, old = state.menus[data.week]?.meals || [];
+          const changed = proposal.meals.filter(m => JSON.stringify(m) !== JSON.stringify(old.find(o => o.date === m.date && o.kind === m.kind)));
+          Object.assign(state.overrides, proposal.overrides);
+          commitMenu(state, proposal.week, proposal.meals, proposal.menuVersion, '对话直接调整');
+          proposal.status = 'confirmed'; proposal.automatic = true;
+          reply = '已更新菜单：\n' + changed.map(m => `${m.date} ${MEAL_NAMES[m.kind]}：${m.dishes.map(d => state.recipes.find(r => r.id === d.recipeId)?.name).join('、') || '不在家用餐'}`).join('\n') + '\n采购数量已同步，可在本周菜单点击“撤销”。';
+        }
       } catch (error) { reply = `这次调整没有执行：${error.message}`; result.blocked = true; }
+    } else if (intent.action === 'update_kitchen') {
+      try {
+        if (agentInfo().provider === 'pi' && JSON.stringify(updatePreview) !== JSON.stringify(intent.changes)) fail('修改内容尚未完成一致的预览，请重试。');
+        if (intent.execution === 'preview') {
+          result.proposal = makeKitchenUpdateProposal(state, data.week, intent.changes, reply);
+          reply += '\n按你的要求先展示预览，请查看前后对比并确认。资料尚未修改。';
+        } else if (intent.changes.some(c => c.target === 'recipe')) {
+          const saved = await knowledge.call('knowledge_apply_chat_update', { revision: state.revision, week: data.week, changes: intent.changes, text, run: state.agentLastRun });
+          return json(res, { reply: saved.reply, proposal: saved.proposal, state: await stateView(store.load()) });
+        } else {
+          const applied = applyDirectKitchenUpdate(state, data.week, intent.changes);
+          result.proposal = applied.proposal; reply = applied.reply;
+        }
+      } catch (error) { reply = `这次修改没有执行：${error.message}`; result.blocked = true; }
     } else if (intent.action === 'feedback') {
       if (!state.members.some(m => m.id === intent.memberId)) reply = '请明确这条反馈对应哪位家庭成员，我再帮你记录。';
       else {
@@ -146,8 +173,7 @@ async function handleApi(req, res, url) {
         reply = '已保存这条反馈。' + (intent.feedbackScope === 'long_term' ? '长期禁用建议需在「家庭档案 → 用餐反馈」确认后生效。' : '这次记录不会自动改变长期偏好或默认饭量。');
       }
     }
-    state.messages.push({ id: randomUUID(), role: 'user', text, createdAt: new Date().toISOString() }, { id: randomUUID(), role: 'assistant', text: reply, provider: output.provider, durationMs: output.durationMs, toolCalls: output.toolCalls, proposalId: result.proposal?.id, createdAt: new Date().toISOString() });
-    state.messages = state.messages.slice(-80); result.reply = reply;
+    recordChat(state, text, reply, state.agentLastRun, result.proposal?.id); result.reply = reply;
   } else if (route === '/api/agent/config') {
     saveAgentConfiguration(data);
     state.agentLastRun = null;
@@ -161,15 +187,11 @@ async function handleApi(req, res, url) {
     const output = await runAgent(`根据菜名或资料整理一份待主厨确认的家常菜草稿。只使用普通食材。基础份数 1；列出主材生重或包装量、调味料；给出充分熟制的步骤；过敏标签如鸡蛋、牛奶、大豆、小麦、花生、鱼、虾、贝类要完整。未知用量可以给示例估算，草稿需用户核对，不宣称精确营养。菜谱资料：${raw}`, recipeSchema, data.image, { customTools: source.customTools });
     validateRecipe(output.data);
     state = store.load();
-    const recipe = { ...output.data, id: randomUUID(), repeatExempt: false, status: 'draft', source: 'Agent 生成草稿，食材、用量和过敏标签需核对', demo: false };
-    state.recipes.push(recipe); result.recipe = recipe;
+    const saved = await knowledge.call('knowledge_save_recipe', { revision: state.revision, id: '', knowledgeVersion: 0, recipe: { ...output.data, source: 'Agent 生成草稿，食材、用量和过敏标签需核对' }, confirm: false });
+    return json(res, { recipe: saved.recipe, state: await stateView(store.load()) });
   } else if (route === '/api/recipes/save') {
-    expected(state, data.revision); validateRecipe(data.recipe);
-    const index = state.recipes.findIndex(r => r.id === data.recipe.id);
-    if (index < 0 || state.recipes[index].status !== 'draft') fail('只能编辑尚未确认的菜谱草稿。');
-    if (data.confirm && state.recipes.some(r => r.id !== data.recipe.id && r.status === 'confirmed' && normalize(r.name) === normalize(data.recipe.name))) fail('已存在同名已确认菜谱，请避免重复身份。');
-    state.recipes[index] = { ...data.recipe, status: data.confirm ? 'confirmed' : 'draft', repeatExempt: false };
-    result.message = data.confirm ? '菜谱已确认，可以参与后续排菜。' : '草稿已保存。';
+    const saved = await knowledge.call('knowledge_save_recipe', { revision: data.revision, id: data.recipe?.id || '', knowledgeVersion: data.recipe?.knowledgeVersion || 0, recipe: data.recipe, confirm: !!data.confirm });
+    return json(res, { recipe: saved.recipe, message: saved.recipe.status === 'confirmed' ? '菜谱知识已更新，旧版本已保留。请查看已有菜单的核对提示。' : '知识库草稿已保存，核对确认后参与排菜。', state: await stateView(store.load()) });
   } else if (route === '/api/imports/draft') {
     validWeek(data.week);
     if (!state.members.some(m => m.id === data.memberId)) fail('请选择适用孩子。');
@@ -215,19 +237,18 @@ async function handleApi(req, res, url) {
     result.message = '长期禁用已确认。请核对已有菜单的冲突提示。';
   } else if (route === '/api/settings') {
     expected(state, data.revision);
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(data.scheduleTime)) fail('请选择有效时间。');
-    try { dateInZone(new Date(), data.timezone); } catch { fail('时区无效。'); }
+    validateSettings(data);
     state.settings = { scheduleTime: data.scheduleTime, timezone: data.timezone, scheduleEnabled: !!data.scheduleEnabled };
     result.message = '后台排程已保存，运行电脑需要保持开机。';
   } else if (route === '/api/documents') {
-    if (!['禁忌规则', '菜单池', '营养搭配'].includes(data.kind) || !String(data.content || '').trim() || data.content.length > 200000) fail('请选择资料类型并提供有效文本。');
+    validateDocument({ ...data, name: data.name || data.kind });
     state.documents.push({ id: randomUUID(), kind: data.kind, name: String(data.name || data.kind).slice(0, 150), content: data.content, status: 'pending_review', createdAt: new Date().toISOString() });
     result.message = '资料已保存为待接入；尚未修改当前执行规则。';
   } else if (route === '/api/schedule/run') {
-    return json(res, { ...runSchedule(true), state: stateView(store.load()) });
+    return json(res, { ...runSchedule(true), state: await stateView(store.load()) });
   } else fail('接口不存在。', 404);
   state = store.save(state);
-  return json(res, { ...result, state: stateView(state) });
+  return json(res, { ...result, state: await stateView(state) });
 }
 export function runSchedule(manual = false, now = new Date()) {
   const state = store.load(), settings = state.settings;
@@ -268,4 +289,4 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, '127.0.0.1', () => console.log(`Family Kitchen: http://127.0.0.1:${port}`));
 const timer = setInterval(() => runSchedule(), 30000);
 timer.unref();
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { clearInterval(timer); server.close(() => { store.close(); process.exit(0); }); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { clearInterval(timer); server.close(async () => { await knowledge.close(); store.close(); process.exit(0); }); });

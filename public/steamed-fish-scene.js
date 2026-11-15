@@ -2,6 +2,7 @@ export const steamedFish = {
   stages: ['洗净', '姜葱', '清蒸', '上桌'],
   cues: ['鲈鱼洗净，整鱼装盘。', '铺上姜葱，准备入锅。', '盖好锅盖，蒸至鱼肉熟透。', '按口味调味，去刺后分餐。'],
   ends: [1400, 2800, 5200, 6800],
+  mins: [3, 1, 8, 3],
   artwork: `<svg class="cooking-stove fish-scene" viewBox="0 0 540 280" aria-hidden="true">
     <ellipse cx="270" cy="253" rx="202" ry="13" fill="#d8c4aa" opacity=".3" stroke="none"/>
     <rect x="54" y="240" width="432" height="9" rx="4" fill="#dfc29d" stroke="#b99a75"/>

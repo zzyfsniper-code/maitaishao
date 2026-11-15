@@ -37,13 +37,29 @@ with sync_playwright() as p:
     assert page.locator('.portrait img').count() >= 3
     page.screenshot(path=str(OUT / 'online-family-avatars.png'),full_page=True)
     page.locator('nav [data-page="recipes"]').click()
+    expect(page.get_by_text('知识库已连接 · 修改会保留历史版本',exact=True)).to_be_visible()
+    expect(page.locator('.assistant-disclaimer')).to_contain_text('明确指令直接执行')
+    knowledge = page.request.get(config['apiBase'] + '/api/knowledge/search?q=清蒸鲈鱼&status=confirmed', headers={'Authorization':'Bearer ' + config['passcode']}).json()
+    assert knowledge['recipes'] and knowledge['recipes'][0]['knowledgeVersion'] >= 1
     page.locator('#recipe-search').fill('清蒸鲈鱼')
     page.locator('[data-action="recipe"]').first.click()
     fish=page.locator('dialog cooking-scene')
     expect(fish).to_have_attribute('data-recipe','steamed-fish')
+    expect(fish.locator('.cooking-chef')).to_have_attribute('href','./assets/fish-chef-dad.png')
+    fish.get_by_role('button',name='妈妈',exact=True).click()
+    expect(fish.locator('.cooking-chef')).to_have_attribute('href','./assets/fish-chef-mom.png')
+    assert fish.locator('.cooking-step-label small').all_text_contents() == ['约 3 分钟','约 1 分钟','约 8 分钟','约 3 分钟']
     expect(fish).to_have_attribute('data-stage','2',timeout=4000)
     expect(fish).to_have_attribute('data-stage','4',timeout=5000)
     page.screenshot(path=str(OUT / 'online-fish-served.png'))
+    page.get_by_role('button',name='历史版本',exact=True).click()
+    expect(page.locator('dialog')).to_contain_text('清蒸鲈鱼')
+    expect(page.locator('dialog')).to_contain_text('v1')
+    page.screenshot(path=str(OUT / 'online-knowledge-history.png'))
+    page.keyboard.press('Escape')
+    page.locator('[data-action="recipe"]').first.click()
+    page.get_by_role('button',name='编辑知识',exact=True).click()
+    expect(page.locator('#recipe-form')).to_be_visible()
     page.keyboard.press('Escape')
     page.locator('nav [data-page="menu"]').click()
     page.set_viewport_size({'width':390,'height':844})
@@ -52,6 +68,6 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUT / 'online-compact-mobile.png'),full_page=True)
     assert not errors, errors
     assert not failed_assets, failed_assets
-    (OUT / 'online-presentation-results.json').write_text(json.dumps({'url':SITE,'loginLoading':True,'automaticExit':True,'compactHeader':True,'avatarsLoaded':True,'fishAnimation':True,'mobileOverflow':False,'jsErrors':errors,'failedAssets':failed_assets}),encoding='utf-8')
-    print('PASS online login loading, compact family strip, new logo/avatars, fish animation and mobile')
+    (OUT / 'online-presentation-results.json').write_text(json.dumps({'url':SITE,'loginLoading':True,'automaticExit':True,'compactHeader':True,'avatarsLoaded':True,'fishAnimation':True,'integratedChefs':True,'knowledgeMcp':True,'knowledgeHistory':True,'knowledgeEditForm':True,'directChatCopy':True,'mobileOverflow':False,'jsErrors':errors,'failedAssets':failed_assets}),encoding='utf-8')
+    print('PASS online login loading, compact family strip, avatars, integrated fish animation, MCP knowledge/history/edit form and mobile')
     browser.close()

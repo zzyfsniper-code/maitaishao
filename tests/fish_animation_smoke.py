@@ -20,7 +20,12 @@ with sync_playwright() as p:
     scene = page.locator('cooking-scene')
     expect(scene).to_have_attribute('data-recipe','steamed-fish')
     expect(scene.locator('.cooking-pan')).to_have_count(0)
-    assert scene.locator('.cooking-steps li').all_text_contents() == ['1洗净','2姜葱','3清蒸','4上桌']
+    assert scene.locator('.cooking-step-label').evaluate_all('(items)=>items.map(e=>e.firstChild.textContent)') == ['洗净','姜葱','清蒸','上桌']
+    assert scene.locator('.cooking-step-label small').all_text_contents() == ['约 3 分钟','约 1 分钟','约 8 分钟','约 3 分钟']
+    expect(scene.locator('.cooking-chef')).to_have_attribute('href','/assets/fish-chef-dad.png')
+    scene.get_by_role('button', name='妈妈', exact=True).click()
+    expect(scene.locator('.cooking-chef')).to_have_attribute('href','/assets/fish-chef-mom.png')
+    expect(scene.locator('.cooking-chef-name')).to_have_text('妈妈掌勺')
     expect(scene).to_have_attribute('data-stage','1',timeout=3000)
     page.screenshot(path=str(OUT / 'fish-ginger.png'))
     expect(scene).to_have_attribute('data-stage','2',timeout=3000)
