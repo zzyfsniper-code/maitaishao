@@ -13,7 +13,7 @@ async function relativize(dir) {
     if (file.isDirectory()) await relativize(target);
     else if (/\.(?:html|js|css)$/.test(file.name)) {
       const text = await readFile(target, 'utf8');
-      await writeFile(target, text.replace(/(["'(])\/(assets\/|fonts\/|[a-z][\w-]*\.(?:js|css|svg|jpg|png|json))/g, '$1./$2').replaceAll('href="/"', 'href="./"'));
+      await writeFile(target, text.replace(/(["'`(])\/(assets\/|fonts\/|[a-z][\w-]*\.(?:js|css|svg|jpg|png|json))/g, '$1./$2').replaceAll('href="/"', 'href="./"'));
     }
   }
 }

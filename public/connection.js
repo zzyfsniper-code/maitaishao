@@ -18,7 +18,7 @@ export async function initializeConnection(app) {
     try { if ((await apiFetch('/api/health')).ok) return; } catch { /* Let the user retry from the sign-in screen. */ }
     passcode = '';
   }
-  app.innerHTML = `<main class="access-page"><form class="access-card"><img src="./assets/maitaishao-icon.jpg" alt="买汰烧品牌形象"><div class="eyebrow">我们一起，好好吃饭</div><h1>欢迎来到买汰烧</h1><p>输入组员口令，进入我们共同的厨房。</p><label for="group-passcode">组员访问口令</label><input id="group-passcode" type="password" autocomplete="current-password" required autofocus><button class="button primary" type="submit">进入厨房</button><p class="access-error" role="alert"></p><small>主厨电脑保持在线时，可一起使用厨房助手。</small></form></main>`;
+  app.innerHTML = `<main class="access-page"><form class="access-card"><img src="./assets/maitaishao-icon-v2.png" alt="买汰烧品牌形象"><div class="eyebrow">我们一起，好好吃饭</div><h1>欢迎来到买汰烧</h1><p>输入组员口令，进入我们共同的厨房。</p><label for="group-passcode">组员访问口令</label><input id="group-passcode" type="password" autocomplete="current-password" required autofocus><button class="button primary" type="submit">进入厨房</button><p class="access-error" role="alert"></p><small>主厨电脑保持在线时，可一起使用厨房助手。</small></form></main>`;
   await new Promise(resolve => {
     app.querySelector('form').addEventListener('submit', async event => {
       event.preventDefault(); event.stopPropagation();

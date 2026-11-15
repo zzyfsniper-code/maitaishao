@@ -1,13 +1,21 @@
+import { steamedFish } from './steamed-fish-scene.js';
+
 const stages = ['备菜', '下锅', '翻炒', '出锅'];
 const cues = ['先切好备着，火候才不慌。', '食材下锅，香气就来了。', '翻一翻，让滋味慢慢相遇。', '出锅，上桌，趁热吃。'];
 
 class CookingScene extends HTMLElement {
   connectedCallback() {
-    this.innerHTML = `<section class="cooking-scene" aria-label="四步烹饪示意动画">
+    delete this.dataset.stage;
+    const fish = this.getAttribute('recipe-name') === '清蒸鲈鱼';
+    this.dataset.recipe = fish ? 'steamed-fish' : 'generic';
+    const labels = fish ? steamedFish.stages : stages;
+    this.cues = fish ? steamedFish.cues : cues;
+    this.ends = fish ? steamedFish.ends : [850, 1500, 2850, 3950];
+    this.innerHTML = `<section class="cooking-scene" aria-label="${fish ? '清蒸鲈鱼专属烹饪示意动画' : '四步烹饪示意动画'}">
       <div class="cooking-intro"><div><span class="cooking-eyebrow">买 · 汰 · 烧</span><p class="cooking-cue"></p></div><button type="button" class="button small cooking-replay">再做一次 ↻</button></div>
       <div class="cooking-stage">
-        <div class="cooking-host"><img src="/assets/maitaishao-icon.jpg" alt="买汰烧主厨形象"><span>今天我掌勺</span></div>
-        <svg class="cooking-stove" viewBox="0 0 540 230" aria-hidden="true">
+        <div class="cooking-host"><img src="/assets/maitaishao-icon-v2.png" alt="买汰烧主厨形象"><span>今天我掌勺</span></div>
+        ${fish ? steamedFish.artwork : `<svg class="cooking-stove" viewBox="0 0 540 230" aria-hidden="true">
           <ellipse cx="285" cy="209" rx="215" ry="15" fill="#d8c4aa" opacity=".32"/>
           <path d="M34 189H514V202H34Z" fill="#d9b991"/><rect x="34" y="182" width="480" height="10" rx="5" fill="#ebd4b4"/>
           <g class="prep-board"><rect x="54" y="149" width="123" height="18" rx="8" fill="#c58f59"/><path d="M65 154H166" stroke="#efd4b4" stroke-width="2"/>
@@ -27,10 +35,10 @@ class CookingScene extends HTMLElement {
           </g>
           <g class="cooking-steam" fill="none" stroke="#a4b9af" stroke-width="3" stroke-linecap="round"><path d="M286 84q-12-13 0-24t0-24"/><path d="M309 76q13-13 0-24t0-24"/><path d="M333 84q-12-13 0-24t0-24"/></g>
           <g class="cooking-plate"><ellipse cx="431" cy="172" rx="54" ry="12" fill="#faf4e5" stroke="#9eafb0" stroke-width="3"/><ellipse cx="431" cy="169" rx="38" ry="7" fill="#dfe9dc"/><path d="M402 166l14-9 13 7 16-12 16 16Z" fill="#6b965d"/><path d="M420 163l9-8 11 6 12 7-24 2Z" fill="#d97b4e"/></g>
-        </svg>
+        </svg>`}
       </div>
-      <ol class="cooking-steps">${stages.map((s, i) => `<li data-step-index="${i}"><span>${i + 1}</span>${s}</li>`).join('')}</ol>
-      <p class="cooking-footnote">烹饪示意 · 实际做法和时间以下方菜谱为准</p><span class="visually-hidden cooking-status" role="status"></span>
+      <ol class="cooking-steps">${labels.map((s, i) => `<li data-step-index="${i}"><span>${i + 1}</span>${s}</li>`).join('')}</ol>
+      <p class="cooking-footnote">${this.hasAttribute('loading') ? '厨房准备好后，将自动为你打开。' : '烹饪示意 · 实际做法和时间以下方菜谱为准'}</p><span class="visually-hidden cooking-status" role="status"></span>
     </section>`;
     this.motion = matchMedia('(prefers-reduced-motion: reduce)');
     this.onMotion = () => this.play();
@@ -48,22 +56,22 @@ class CookingScene extends HTMLElement {
   setStage(stage) {
     if (this.dataset.stage === String(stage)) return;
     this.dataset.stage = stage;
-    this.querySelector('.cooking-cue').textContent = cues[Math.min(stage, 3)];
+    this.querySelector('.cooking-cue').textContent = this.cues[Math.min(stage, 3)];
     this.querySelectorAll('.cooking-steps li').forEach((el, i) => {
       el.classList.toggle('current', i === Math.min(stage, 3));
       el.classList.toggle('complete', i < stage);
       if (i === Math.min(stage, 3)) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
     });
-    this.querySelector('.cooking-status').textContent = stage === 4 ? '烹饪示意播放完成。' : '';
+    this.querySelector('.cooking-status').textContent = stage === 4 && !this.hasAttribute('loading') ? '烹饪示意播放完成。' : '';
   }
   play() {
     this.stop();
     if (this.motion.matches) { this.setStage(4); return; }
     const start = performance.now();
     const tick = now => {
-      const elapsed = now - start;
-      this.setStage(elapsed < 850 ? 0 : elapsed < 1500 ? 1 : elapsed < 2850 ? 2 : elapsed < 3950 ? 3 : 4);
-      if (elapsed < 3950 && this.isConnected) this.frame = requestAnimationFrame(tick);
+      const elapsed = this.hasAttribute('loading') ? (now - start) % (this.ends[3] + 600) : now - start;
+      this.setStage(elapsed < this.ends[0] ? 0 : elapsed < this.ends[1] ? 1 : elapsed < this.ends[2] ? 2 : elapsed < this.ends[3] ? 3 : 4);
+      if ((this.hasAttribute('loading') || elapsed < this.ends[3]) && this.isConnected) this.frame = requestAnimationFrame(tick);
     };
     this.setStage(0); this.frame = requestAnimationFrame(tick);
   }
