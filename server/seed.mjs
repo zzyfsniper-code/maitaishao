@@ -1,5 +1,6 @@
 export const MEALS = ['breakfast', 'lunch', 'dinner'];
 export const MEAL_NAMES = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' };
+export const MENU_RULES = { version: 'demo-v2', repeatGapDays: 1, mainDishCount: 5 };
 export function dateInZone(time = new Date(), zone = 'Asia/Shanghai') {
   return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(time);
 }
@@ -71,6 +72,6 @@ export function initialState() {
     { id: 'dad', name: '爸爸', sex: '男', age: 34, portion: 1.2, likes: ['牛肉'], dislikes: [], allergies: [], restrictions: [], profileTags: ['爱吃肉'], avatar: '', diseaseNotes: '', spice: '微辣', schedule: schedule(false), color: 'sage' },
     { id: 'child', name: '宝宝', sex: '女', age: 4, portion: 0.5, likes: ['南瓜'], dislikes: [], allergies: [], restrictions: [], profileTags: ['不吃辣'], avatar: '', diseaseNotes: '', spice: '不辣', schedule: schedule(true), color: 'yellow' }
   ], recipes: seedRecipes(), menus: {}, overrides: {}, imports: [], feedback: [], messages: [], proposals: [], undo: {}, documents: [], jobs: [],
-    rules: { version: 'demo-v1', repeatGapDays: 3, formal: false, nutrition: '早餐主食＋蛋白质，午晚餐荤素搭配；不计算精确热量。', quantityBasis: '每位成人参考份数；主材生重/包装量，调味料另备。' },
+    rules: { ...MENU_RULES, formal: false, nutrition: '早餐主食＋蛋白质，午晚餐五道菜另加主食；不计算精确热量。', quantityBasis: '每位成人参考份数；主材生重/包装量，调味料另备。' },
     settings: { timezone: 'Asia/Shanghai', scheduleTime: '20:00', scheduleEnabled: true }, agentLastRun: null };
 }

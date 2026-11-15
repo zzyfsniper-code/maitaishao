@@ -49,3 +49,8 @@ Pi 可调用 get_kitchen_context、find_recipes、preview_menu_adjustment、prev
 ## 菜谱知识迁移
 
 `recipe_knowledge` 是当前菜谱，`recipe_knowledge_history` 保留版本，`knowledge_migration` 保存首次迁移前完整状态。原有 recipes 字段迁移一次，普通应用状态保存不再写菜谱；菜谱变更经 MCP 原子保存，并同时递增全局 revision。网页 state 的菜谱由 MCP 查询返回。详见《Agent与知识库架构》。
+
+
+## 菜数与重复间隔（2026-11-15 更新）
+
+午晚餐 `dishCount` 为菜的数量，取 1–5，另加一份主食；0 使用默认五道菜。默认至少两荤两素，第五道从符合限制的荤菜或素菜中选择。全周请求保持早餐主食加蛋白质的两项搭配。同菜间隔为一个完整自然日，可隔天再吃，仍禁止同日及相邻日重复，保留基础早餐例外。执行规则版本为 `demo-v2`。

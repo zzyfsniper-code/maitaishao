@@ -130,7 +130,7 @@ with tempfile.TemporaryDirectory(prefix='family-kitchen-browser-') as directory:
                 expect(page.locator('.pending-card').last).to_be_visible(timeout=10000)
                 snap = state(); prop = snap['proposals'][-1]
                 new_meal = next(m for m in prop['meals'] if m['date'] == week[:8] + str(int(week[8:]) + 2).zfill(2) and m['kind'] == 'dinner')
-                assert len(new_meal['dishes']) == 2
+                assert len(new_meal['dishes']) == 3
                 page.locator('.pending-card [data-action="proposal"]').last.click()
                 page.get_by_role('button', name='确认调整', exact=True).click()
                 expect(page.locator('dialog')).not_to_be_visible()

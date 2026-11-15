@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createStore } from './store.mjs';
-import { dateInZone, nextWeek, addDays, MEALS, MEAL_NAMES } from './seed.mjs';
+import { dateInZone, nextWeek, addDays, MEALS, MEAL_NAMES, MENU_RULES } from './seed.mjs';
 import { fail, validDate, validWeek, buildMeals, commitMenu, replaceDish, validateMeals, shopping, makeProposal, contextFor, normalize, validateRecipe, allMeals } from './domain.mjs';
 import { agentInfo, saveAgentConfiguration, runAgent, intentSchema, importSchema, recipeSchema } from './agent.mjs';
 import { readSource } from './wechat-source.mjs';
@@ -25,11 +25,17 @@ if (seed.revision === 0 && !Object.keys(seed.menus).length) {
   store.save(seed);
 }
 const ruleState = store.load();
+let rulesChanged = false;
+if (ruleState.rules.version === 'demo-v1') {
+  Object.assign(ruleState.rules, MENU_RULES);
+  rulesChanged = true;
+}
 if (ruleState.rules.positiveVersion !== POSITIVE_RULE_VERSION) {
   ruleState.rules.positiveVersion = POSITIVE_RULE_VERSION;
   ruleState.rules.nutrition = '保留早餐主食与蛋白质、午晚餐荤素搭配；优先增加成员本周家庭食材种类。成分和实际摄入不全，营养暂不评价。';
-  store.save(ruleState);
+  rulesChanged = true;
 }
+if (rulesChanged) store.save(ruleState);
 const json = (res, data, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
 async function body(req) {
   if (!String(req.headers['content-type']).startsWith('application/json')) fail('请使用 JSON 请求。', 415);
@@ -119,7 +125,7 @@ async function handleApi(req, res, url) {
     const context = { today: dateInZone(new Date(), state.settings.timezone), selectedWeek: data.week, weekEnd: addDays(data.week, 6), members: state.members.map(({ avatar, ...member }) => member),
       recipes: state.recipes.filter(r => r.status === 'confirmed').map(r => ({ id: r.id, name: r.name, category: r.category, tags: r.tags })), rules: state.rules,
       editable: editableContext(state), menu: state.menus[data.week] || null, history: state.messages.slice(-10).map(m => ({ role: m.role, text: m.text })) };
-    const output = await runAgent(`把用户指令转换为厨房操作。只有明确要求调整菜单时 action=adjust_menu；明确某成员出席或缺席时 attendance；家人用餐感受或以后别做等反馈为 feedback。明确修改家庭档案或其他表单时 update_kitchen；长期新增/移除偏好、标签、过敏、忌口优先 update_kitchen，单次用餐感受仍为 feedback。否则 answer。有歧义先提问，不能猜。日期语义：周三等未指明周次的星期在 selectedWeek 内；今天/明天基于 today，超出选定周时 answer 提醒切换。调整一餐不能扩大到全周。生成一周是 adjust_menu 且全周/all。同一条含多项不支持的复杂操作先澄清。份量数字未明确为道数时不要猜 dishCount。默认 dishCount=0、requestedRecipeName=""、style=""、memberId=""、present=true、feedbackScope=temporary、avoidFood=""。清淡=light。不支持的营养精确数值不要承诺。requestedRecipeName 必须使用用户指定的菜名。feedback 仅明确“以后不吃/别做”才 long_term 且 avoidFood 为食材或菜名；一次感受为 temporary，无法确定为 unclear。start/end 都必须 YYYY-MM-DD。执行模式默认 execution=apply，明确指令校验通过后由后台直接保存，无需再次确认；只有用户明确说先预览/先给建议/等我确认/不要保存时 execution=preview。含糊不清时 action=answer 只询问，不猜。内部试排工具不是要求用户确认。reply 简要说明动作，最终是否保存由后台结果确定。${updateInstructions}\n上下文：${JSON.stringify(context)}\n用户消息：${text}`, intentSchema, undefined, { customTools: kitchenTools(state, data.week, value => { preview = value; }, value => { updatePreview = value; }, knowledge) });
+    const output = await runAgent(`把用户指令转换为厨房操作。只有明确要求调整菜单时 action=adjust_menu；明确某成员出席或缺席时 attendance；家人用餐感受或以后别做等反馈为 feedback。明确修改家庭档案或其他表单时 update_kitchen；长期新增/移除偏好、标签、过敏、忌口优先 update_kitchen，单次用餐感受仍为 feedback。否则 answer。有歧义先提问，不能猜。日期语义：周三等未指明周次的星期在 selectedWeek 内；今天/明天基于 today，超出选定周时 answer 提醒切换。调整一餐不能扩大到全周。生成一周是 adjust_menu 且全周/all。同一条含多项不支持的复杂操作先澄清。份量数字未明确为道数时不要猜 dishCount。午晚餐 dishCount 只计菜、不计主食，1–5 道菜会另配一份主食；0 使用默认五道菜加主食。全周调整不改变早餐主食加蛋白质搭配。默认 dishCount=0、requestedRecipeName=""、style=""、memberId=""、present=true、feedbackScope=temporary、avoidFood=""。清淡=light。不支持的营养精确数值不要承诺。requestedRecipeName 必须使用用户指定的菜名。feedback 仅明确“以后不吃/别做”才 long_term 且 avoidFood 为食材或菜名；一次感受为 temporary，无法确定为 unclear。start/end 都必须 YYYY-MM-DD。执行模式默认 execution=apply，明确指令校验通过后由后台直接保存，无需再次确认；只有用户明确说先预览/先给建议/等我确认/不要保存时 execution=preview。含糊不清时 action=answer 只询问，不猜。内部试排工具不是要求用户确认。reply 简要说明动作，最终是否保存由后台结果确定。${updateInstructions}\n上下文：${JSON.stringify(context)}\n用户消息：${text}`, intentSchema, undefined, { customTools: kitchenTools(state, data.week, value => { preview = value; }, value => { updatePreview = value; }, knowledge) });
     state = store.load(); expected(state, snapshotRevision);
     const intent = output.data;
     let reply = intent.reply;

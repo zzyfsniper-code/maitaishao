@@ -56,7 +56,7 @@ export function validateMeals(state, meals, otherMeals = []) {
       const reason = dietaryConflict(recipe, ctx.members);
       if (reason) errors.push(`${meal.date} ${recipe.name}：${reason}`);
       if (externalConflict(state, recipe, meal.date, meal.kind, ctx.members)) errors.push(`${meal.date} ${recipe.name}：与幼儿园午餐重复`);
-      if (repeated(state, recipe, meal.date, meal.kind, [...otherMeals, ...meals.filter((_, i) => i !== index)])) errors.push(`${meal.date} ${recipe.name}：未间隔三个完整自然日`);
+      if (repeated(state, recipe, meal.date, meal.kind, [...otherMeals, ...meals.filter((_, i) => i !== index)])) errors.push(`${meal.date} ${recipe.name}：未间隔 ${state.rules.repeatGapDays} 个完整自然日`);
     }
   }
   return [...new Set(errors)];
@@ -87,22 +87,21 @@ export function buildMeals(state, week, options = {}) {
     const { members, portions } = contextFor(state, date, mealKind);
     const meal = { date, kind: mealKind, memberIds: members.map(m => m.id), portions, dishes: [], warnings: [] };
     if (!members.length) { generated.push(meal); continue; }
-    let categories = mealKind === 'breakfast' ? ['breakfast_staple', 'breakfast_protein'] : ['meat', 'vegetable', 'staple'];
-    if (options.dishCount) {
-      if (!Number.isInteger(options.dishCount) || options.dishCount < 1 || options.dishCount > 4) fail('Demo 支持每餐 1–4 道；请给出这个范围内的菜数。');
-      categories = options.dishCount <= categories.length ? categories.slice(0, options.dishCount) : [...categories, 'soup'].slice(0, options.dishCount);
-    }
+    const breakfast = mealKind === 'breakfast';
+    const count = (breakfast && kind === 'all' ? 0 : options.dishCount) || (breakfast ? 2 : state.rules.mainDishCount || 5);
+    if (!Number.isInteger(count) || count < 1 || count > (breakfast ? 2 : 5)) fail(breakfast ? '早餐支持 1–2 项。' : '午晚餐支持 1–5 道菜，主食另算。');
+    const categories = breakfast ? ['breakfast_staple', 'breakfast_protein'].slice(0, count) : [...['meat', 'vegetable', 'meat', 'vegetable', 'side'].slice(0, count), 'staple'];
     let desired;
     if (options.requestedRecipeName) {
       desired = state.recipes.find(r => normalize(r.name) === normalize(options.requestedRecipeName) && r.status === 'confirmed');
       if (!desired) fail(`「${options.requestedRecipeName}」尚未在已确认菜谱库中，请先新增并确认。`);
-      if (!categories.includes(desired.category)) categories[categories.length - 1] = desired.category;
+      if (!categories.includes(desired.category)) categories[breakfast ? categories.length - 1 : categories.length - 2] = desired.category;
     }
     for (const category of categories) {
       const others = [...prior, ...generated];
-      let candidates = state.recipes.filter(r => r.category === category && !meal.dishes.some(d => d.recipeId === r.id) && eligible(state, r, date, mealKind, members, others, options.style));
-      if (desired?.category === category) candidates = candidates.filter(r => r.id === desired.id);
-      if (!candidates.length) fail(`${date} ${MEAL_NAMES[mealKind]}没有符合${desired?.category === category ? `「${desired.name}」和` : ''}饮食限制、重复间隔的${({ meat: '荤菜', vegetable: '素菜', staple: '主食', soup: '汤', breakfast_staple: '早餐主食', breakfast_protein: '早餐蛋白质' })[category]}。请补充菜谱或调整要求；未放宽硬约束。`, 422);
+      let candidates = state.recipes.filter(r => (category === 'side' ? ['meat', 'vegetable'].includes(r.category) : r.category === category) && !meal.dishes.some(d => d.recipeId === r.id) && eligible(state, r, date, mealKind, members, others, options.style));
+      if (desired?.category === category && !meal.dishes.some(d => d.recipeId === desired.id)) candidates = candidates.filter(r => r.id === desired.id);
+      if (!candidates.length) fail(`${date} ${MEAL_NAMES[mealKind]}没有符合${desired?.category === category ? `「${desired.name}」和` : ''}饮食限制、重复间隔的${({ meat: '荤菜', vegetable: '素菜', side: '第五道荤菜或素菜', staple: '主食', soup: '汤', breakfast_staple: '早餐主食', breakfast_protein: '早餐蛋白质' })[category]}。请补充菜谱或调整要求；未放宽硬约束。`, 422);
       const scored = candidates.map(r => ({ recipe: r, score: recipeScore(r, members, others.map(m => ({ ...m, _recipes: recipeMap })), date) })).sort((a, b) => b.score - a.score);
       meal.dishes.push({ recipeId: scored[0].recipe.id, servings: portions });
     }

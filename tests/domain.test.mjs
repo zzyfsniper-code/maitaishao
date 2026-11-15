@@ -20,6 +20,36 @@ test('repeat interval holds across the week boundary', () => {
   const s = prepared(), next = addDays(week, 7), earlier = s.menus[week].meals;
   const meals = buildMeals(s, next); assert.deepEqual(validateMeals(s, meals, earlier), []);
 });
+
+test('main meals contain five distinct dishes plus a separate staple, breakfast stays unchanged', () => {
+  const s = prepared();
+  for (const meal of s.menus[week].meals) {
+    const recipes = meal.dishes.map(d => s.recipes.find(r => r.id === d.recipeId));
+    assert.equal(new Set(meal.dishes.map(d => d.recipeId)).size, meal.dishes.length);
+    if (meal.kind === 'breakfast') assert.deepEqual(recipes.map(r => r.category), ['breakfast_staple', 'breakfast_protein']);
+    else {
+      assert.equal(recipes.filter(r => r.category !== 'staple').length, 5);
+      assert.equal(recipes.filter(r => r.category === 'staple').length, 1);
+    }
+  }
+});
+
+test('same dish is rejected on the next day and allowed after one full intervening day', () => {
+  const s = initialState(), fish = s.recipes.find(r => r.name === '清蒸鲈鱼');
+  const ctx = contextFor(s, week, 'dinner');
+  const old = { date: week, kind: 'dinner', memberIds: ctx.members.map(m => m.id), portions: ctx.portions, dishes: [{ recipeId: fish.id, servings: ctx.portions }] };
+  const nextDay = { ...old, date: addDays(week, 1) }, dayAfter = { ...old, date: addDays(week, 2) };
+  assert.ok(validateMeals(s, [nextDay], [old]).some(e => e.includes('未间隔 1 个完整自然日')));
+  assert.deepEqual(validateMeals(s, [dayAfter], [old]), []);
+});
+
+test('requesting a recipe in a five-dish meal includes it once and retains a staple', () => {
+  const s = initialState(), meals = buildMeals(s, week, { start: week, end: week, meal: 'dinner', dishCount: 5, requestedRecipeName: '清蒸鲈鱼' });
+  const dishIds = meals[0].dishes.map(d => d.recipeId), fish = s.recipes.find(r => r.name === '清蒸鲈鱼');
+  assert.equal(dishIds.length, 6);
+  assert.equal(dishIds.filter(id => id === fish.id).length, 1);
+  assert.equal(dishIds.filter(id => s.recipes.find(r => r.id === id).category === 'staple').length, 1);
+});
 test('allergy exclusions cover shared meal and ingredient aliases', () => {
   const s = initialState(); s.members[2].allergies = ['海鲜', '乳制品'];
   const meals = buildMeals(s, week);
@@ -33,7 +63,7 @@ test('one meal proposal retains every unaffected meal and does not mutate menu',
   const s = prepared(), before = JSON.stringify(s.menus[week]);
   const p = makeProposal(s, week, { start: week, end: week, meal: 'dinner', dishCount: 2 }, 'test');
   assert.equal(JSON.stringify(s.menus[week]), before);
-  assert.equal(p.meals.find(m => m.date === week && m.kind === 'dinner').dishes.length, 2);
+  assert.equal(p.meals.find(m => m.date === week && m.kind === 'dinner').dishes.length, 3);
   for (const m of s.menus[week].meals.filter(m => !(m.date === week && m.kind === 'dinner'))) assert.deepEqual(p.meals.find(n => n.date === m.date && n.kind === m.kind), m);
 });
 test('temporary attendance does not overwrite fixed schedule', () => {

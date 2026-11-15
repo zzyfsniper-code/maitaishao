@@ -132,7 +132,7 @@ with tempfile.TemporaryDirectory(prefix='kitchen-knowledge-browser-') as directo
                 output = chat('周三晚餐只做两道菜，直接修改。')
                 assert output.get('proposal', {}).get('automatic') is True, output['reply']
                 changed = [m for m in output['state']['menus'][original['defaultWeek']]['meals'] if m not in before_one_meal]
-                assert len(changed) == 1 and changed[0]['kind'] == 'dinner' and len(changed[0]['dishes']) == 2
+                assert len(changed) == 1 and changed[0]['kind'] == 'dinner' and len(changed[0]['dishes']) == 3
                 expect(page.locator('.pending-card')).to_have_count(0)
                 output = chat('查询知识库中带有“知识库验收标记”的菜谱，告诉我菜名和来源说明，只查询，不修改。')
                 assert '清蒸鲈鱼' in output['reply'] and '隔离数据库' in output['reply'], output['reply']

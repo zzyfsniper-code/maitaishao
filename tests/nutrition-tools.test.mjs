@@ -32,7 +32,7 @@ test('Pi kitchen tools preview valid menus without changing stored data or expos
   const output = await tools.find(t => t.name === 'preview_menu_adjustment').execute('', { start: '2026-11-18', end: '2026-11-18', meal: 'dinner', style: '', dishCount: 2, requestedRecipeName: '' });
   const preview = JSON.parse(output.content[0].text);
   assert.deepEqual(preview.issues, []);
-  assert.equal(preview.meals.find(m => m.date === '2026-11-18' && m.kind === 'dinner').dishes.length, 2);
+  assert.equal(preview.meals.find(m => m.date === '2026-11-18' && m.kind === 'dinner').dishes.length, 3);
   assert.deepEqual(state, before);
   assert.ok(tools.every(t => !['bash', 'read', 'write', 'edit'].includes(t.name)));
   const proposal = makeProposal(state, week, captured.options, '待确认', undefined, captured.meals);

@@ -21,7 +21,7 @@ export function kitchenTools(state, week, onPreview = () => {}, onUpdatePreview 
     })),
     tool('find_recipes', '通过 MCP 查询已确认菜谱知识的食材、过敏标签、做法和版本。query 为空时列出全部。', { query: str }, async ({ query }) => knowledge ? (await knowledge.call('knowledge_search_recipes', { query, status: 'confirmed' })).recipes : snapshot.recipes.filter(r => r.status === 'confirmed' && (!query || [r.name, ...r.tags, ...r.ingredients.map(i => i.name)].some(s => s.includes(query))))),
     tool('preview_menu_adjustment', '按现有规则试排菜单并校验。返回候选供后台校验，不写数据库；后台根据 execution 直接保存或保留预览。', {
-      start: str, end: str, meal: { type: 'string', enum: ['all', 'breakfast', 'lunch', 'dinner'] }, style: { type: 'string', enum: ['', 'light'] }, dishCount: { type: 'integer' }, requestedRecipeName: str
+      start: str, end: str, meal: { type: 'string', enum: ['all', 'breakfast', 'lunch', 'dinner'] }, style: { type: 'string', enum: ['', 'light'] }, dishCount: { type: 'integer', minimum: 0, maximum: 5, description: '午晚餐菜数，不计另配的主食；0 使用默认五道菜。全周调整的早餐保持两项。' }, requestedRecipeName: str
     }, options => {
       const meals = buildMeals(snapshot, week, options);
       onPreview({ options: structuredClone(options), meals: structuredClone(meals) });

@@ -2,7 +2,7 @@
   "version": "negative-v1",
   "status": "specification",
   "enabled": false,
-  "sourceVersion": "组员文档 v1.1，2026-11-15",
+  "sourceVersion": "组员文档 v1.1；同菜间隔按用户 2026-11-15 最新指令调整",
   "scope": {
     "meals": [
       "breakfast",
@@ -12,7 +12,7 @@
     "participants": "actual_attendees_only",
     "sharedDish": "must_satisfy_every_attendee",
     "kindergarten": "confirmed_same_day_lunch_vs_attending_child_dinner",
-    "repeatGapDays": 3,
+    "repeatGapDays": 1,
     "breakfastException": "explicitly_marked_recipe_in_breakfast_only",
     "allowAutomaticRelaxation": false,
     "allowUnconfirmedRecipe": false
@@ -160,9 +160,9 @@
     },
     {
       "id": "N11",
-      "topic": "跨周间隔三个完整自然日",
+      "topic": "跨周间隔一个完整自然日",
       "source": [
-        "project_repeat_gap_3"
+        "user_repeat_gap_1_20261115"
       ],
       "implementation": "existing",
       "gap": null,
