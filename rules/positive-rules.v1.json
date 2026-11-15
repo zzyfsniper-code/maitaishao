@@ -1,0 +1,26 @@
+{
+  "version": "positive-v1",
+  "status": "partial_runtime",
+  "active": ["existing_meal_category_balance", "per_attendee_weekly_food_variety", "exclude_listed_seasonings_from_variety", "missing_nutrients_not_evaluated"],
+  "preserveExistingMenus": true,
+  "safetyAndStrictRestrictionsFirst": true,
+  "variety": {
+    "basis": "confirmed_recipe_ingredient_names",
+    "scope": "selected_week_home_meals_per_actual_attendee",
+    "newIngredientWeight": 1,
+    "aggregateAcrossAttendees": "mean",
+    "publicScore": false,
+    "interpretation": "product_ranking_only_not_nutrition_score"
+  },
+  "nutrition": {
+    "evaluationEnabled": false,
+    "missingValue": null,
+    "missingLabel": "暂不评价",
+    "doNotInferActualIntakeFromMenu": true,
+    "doNotApplyAdultTargetsToChildren": true,
+    "homeMealsAloneDoNotRepresentWholeDay": true
+  },
+  "pendingInputs": ["expression.json", "verified_nutrient_reference_tables", "food_composition_table", "recipe_ingredient_ids_and_oil_salt_grams", "raw_cooked_yield_evidence", "actual_intake_coverage", "source_selftest_code"],
+  "exchange": {"enabled": false, "currentReplacementMode": "same_category_same_reference_servings", "referenceServingsAreEnergyExchanges": false},
+  "documentation": "docs/正向规则.md"
+}

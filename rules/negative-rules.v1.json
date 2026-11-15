@@ -1,0 +1,229 @@
+{
+  "version": "negative-v1",
+  "status": "specification",
+  "enabled": false,
+  "sourceVersion": "组员文档 v1.1，2026-11-15",
+  "scope": {
+    "meals": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "participants": "actual_attendees_only",
+    "sharedDish": "must_satisfy_every_attendee",
+    "kindergarten": "confirmed_same_day_lunch_vs_attending_child_dinner",
+    "repeatGapDays": 3,
+    "breakfastException": "explicitly_marked_recipe_in_breakfast_only",
+    "allowAutomaticRelaxation": false,
+    "allowUnconfirmedRecipe": false
+  },
+  "outcomes": [
+    "block",
+    "review",
+    "prefer_avoid",
+    "pass"
+  ],
+  "reviewEligibleForAutomaticSelection": false,
+  "rules": [
+    {
+      "id": "N01",
+      "topic": "已确认过敏原冲突",
+      "source": [
+        "P0-01"
+      ],
+      "implementation": "partial",
+      "gap": "复合配料与交叉接触信息",
+      "outcomes": [
+        "block"
+      ]
+    },
+    {
+      "id": "N02",
+      "topic": "相关可能含有或成分未知",
+      "source": [
+        "P0-02"
+      ],
+      "implementation": "pending",
+      "gap": "配料完整性与标签证据",
+      "outcomes": [
+        "review"
+      ]
+    },
+    {
+      "id": "N03",
+      "topic": "明确医嘱与严重不耐受",
+      "source": [
+        "P0-03"
+      ],
+      "implementation": "partial",
+      "gap": "医嘱对象、原文、期限及量化数据",
+      "outcomes": [
+        "block",
+        "review"
+      ]
+    },
+    {
+      "id": "N04",
+      "topic": "严格个人忌口",
+      "source": [
+        "P2.5-01",
+        "P2.5-02"
+      ],
+      "implementation": "partial",
+      "gap": "类别范围与衍生成分映射",
+      "outcomes": [
+        "block"
+      ]
+    },
+    {
+      "id": "N05",
+      "topic": "忌口范围含糊",
+      "source": [
+        "P2.5-02"
+      ],
+      "implementation": "pending",
+      "gap": "结构化澄清与范围确认",
+      "outcomes": [
+        "review"
+      ]
+    },
+    {
+      "id": "N06",
+      "topic": "软偏好与临时反馈",
+      "source": [
+        "P2.5-01",
+        "project_feedback_confirmation"
+      ],
+      "implementation": "partial",
+      "gap": "食材级软偏好匹配",
+      "outcomes": [
+        "prefer_avoid"
+      ]
+    },
+    {
+      "id": "N07",
+      "topic": "健康目标不能推导禁食与治疗承诺",
+      "source": [
+        "P1-01",
+        "P1-02",
+        "P1-03",
+        "P1-04",
+        "P1-05"
+      ],
+      "implementation": "guardrail",
+      "gap": "经审核的疾病与营养规则",
+      "outcomes": [
+        "review"
+      ]
+    },
+    {
+      "id": "N08",
+      "topic": "特殊人群适用性及食物形态未知",
+      "source": [
+        "P2-01",
+        "P2-02",
+        "P2-03"
+      ],
+      "implementation": "pending",
+      "gap": "年龄适用范围、形态与配方审核数据",
+      "outcomes": [
+        "review"
+      ]
+    },
+    {
+      "id": "N09",
+      "topic": "配方变更后重新校验",
+      "source": [
+        "P0-04",
+        "P2.5-03"
+      ],
+      "implementation": "partial",
+      "gap": "去料及分份独立配方",
+      "outcomes": [
+        "block",
+        "review",
+        "pass"
+      ]
+    },
+    {
+      "id": "N10",
+      "topic": "已确认园所午餐同日避重",
+      "source": [
+        "P3-01",
+        "project_lunch_only"
+      ],
+      "implementation": "partial",
+      "gap": "完整菜名别名库",
+      "outcomes": [
+        "block"
+      ]
+    },
+    {
+      "id": "N11",
+      "topic": "跨周间隔三个完整自然日",
+      "source": [
+        "project_repeat_gap_3"
+      ],
+      "implementation": "existing",
+      "gap": null,
+      "outcomes": [
+        "block"
+      ]
+    },
+    {
+      "id": "N12",
+      "topic": "未确认菜谱及不可行请求",
+      "source": [
+        "engine-2",
+        "engine-6"
+      ],
+      "implementation": "existing",
+      "gap": null,
+      "outcomes": [
+        "block"
+      ]
+    },
+    {
+      "id": "N13",
+      "topic": "缺失信息、过期建议与确认边界",
+      "source": [
+        "input_requirements",
+        "project_revision_guard"
+      ],
+      "implementation": "partial",
+      "gap": "过敏资料确认状态",
+      "outcomes": [
+        "review",
+        "block"
+      ]
+    },
+    {
+      "id": "N14",
+      "topic": "偏好评分不得覆盖禁忌或冒充医学结论",
+      "source": [
+        "P4",
+        "ranking_notes"
+      ],
+      "implementation": "guardrail",
+      "gap": "不新增评分与治疗判断",
+      "outcomes": [
+        "review"
+      ]
+    }
+  ],
+  "findingFields": [
+    "ruleId",
+    "result",
+    "memberId",
+    "recipeId",
+    "matchedItem",
+    "reason",
+    "source",
+    "ruleVersion"
+  ],
+  "activationRequires": [
+    "补齐对应数据字段及审核依据",
+    "完成 docs/负面规则.md 中的接入验收",
+    "明确确认执行版本切换；不回写历史菜单"
+  ]
+}
