@@ -11,11 +11,15 @@ class CookingScene extends HTMLElement {
     const labels = fish ? steamedFish.stages : stages;
     this.cues = fish ? steamedFish.cues : cues;
     this.ends = fish ? steamedFish.ends : [850, 1500, 2850, 3950];
+    this.mins = fish ? steamedFish.mins : null;
+    this.chef = 'dad';
+    const chefAssets = { dad: './assets/fish-chef-dad.png', mom: './assets/fish-chef-mom.png' };
+    const fishArt = fish ? steamedFish.artwork.replace('<rect x="54" y="240"', `<svg x="0" y="0" width="540" height="240" overflow="hidden"><image class="cooking-chef" href="${chefAssets.dad}" x="-8" y="4" width="300" height="330" preserveAspectRatio="xMidYMax meet"/></svg><rect x="54" y="240"`) : '';
     this.innerHTML = `<section class="cooking-scene" aria-label="${fish ? '清蒸鲈鱼专属烹饪示意动画' : '四步烹饪示意动画'}">
-      <div class="cooking-intro"><div><span class="cooking-eyebrow">买 · 汰 · 烧</span><p class="cooking-cue"></p></div><button type="button" class="button small cooking-replay">再做一次 ↻</button></div>
+      <div class="cooking-intro"><div><span class="cooking-eyebrow">买 · 汰 · 烧</span>${fish ? '<b class="cooking-chef-name">爸爸掌勺</b>' : '<p class="cooking-cue"></p>'}</div><div class="cooking-controls">${fish ? '<div class="cooking-chef-pick" role="group" aria-label="选择掌勺人"><button type="button" data-chef="dad" aria-pressed="true">爸爸</button><button type="button" data-chef="mom" aria-pressed="false">妈妈</button></div>' : ''}<button type="button" class="button small cooking-replay">再做一次 ↻</button></div></div>
       <div class="cooking-stage">
-        <div class="cooking-host"><img src="./assets/maitaishao-icon-v2.png" alt="买汰烧主厨形象"><span>今天我掌勺</span></div>
-        ${fish ? steamedFish.artwork : `<svg class="cooking-stove" viewBox="0 0 540 230" aria-hidden="true">
+        ${fish ? '' : '<div class="cooking-host"><img src="./assets/maitaishao-icon-v2.png" alt="买汰烧主厨形象"><span>今天我掌勺</span></div>'}
+        ${fish ? fishArt : `<svg class="cooking-stove" viewBox="0 0 540 230" aria-hidden="true">
           <ellipse cx="285" cy="209" rx="215" ry="15" fill="#d8c4aa" opacity=".32"/>
           <path d="M34 189H514V202H34Z" fill="#d9b991"/><rect x="34" y="182" width="480" height="10" rx="5" fill="#ebd4b4"/>
           <g class="prep-board"><rect x="54" y="149" width="123" height="18" rx="8" fill="#c58f59"/><path d="M65 154H166" stroke="#efd4b4" stroke-width="2"/>
@@ -36,27 +40,37 @@ class CookingScene extends HTMLElement {
           <g class="cooking-steam" fill="none" stroke="#a4b9af" stroke-width="3" stroke-linecap="round"><path d="M286 84q-12-13 0-24t0-24"/><path d="M309 76q13-13 0-24t0-24"/><path d="M333 84q-12-13 0-24t0-24"/></g>
           <g class="cooking-plate"><ellipse cx="431" cy="172" rx="54" ry="12" fill="#faf4e5" stroke="#9eafb0" stroke-width="3"/><ellipse cx="431" cy="169" rx="38" ry="7" fill="#dfe9dc"/><path d="M402 166l14-9 13 7 16-12 16 16Z" fill="#6b965d"/><path d="M420 163l9-8 11 6 12 7-24 2Z" fill="#d97b4e"/></g>
         </svg>`}
+        ${fish ? '<div class="cue-bar"><span class="cue-time"><small>参考</small><b></b><span>分钟</span></span><p class="cooking-cue"></p></div>' : ''}
       </div>
-      <ol class="cooking-steps">${labels.map((s, i) => `<li data-step-index="${i}"><span>${i + 1}</span>${s}</li>`).join('')}</ol>
-      <p class="cooking-footnote">${this.hasAttribute('loading') ? '厨房准备好后，将自动为你打开。' : '烹饪示意 · 实际做法和时间以下方菜谱为准'}</p><span class="visually-hidden cooking-status" role="status"></span>
+      <ol class="cooking-steps">${labels.map((s, i) => `<li data-step-index="${i}"><span>${i + 1}</span>${fish ? `<span class="cooking-step-label">${s}<small>约 ${this.mins[i]} 分钟</small></span>` : s}</li>`).join('')}</ol>
+      ${fish ? `<p class="cue-total">本菜示例用时约 <b>${this.mins.reduce((a, b) => a + b, 0)}</b> 分钟</p>` : ''}
+      <p class="cooking-footnote">${this.hasAttribute('loading') ? '厨房准备好后，将自动为你打开。' : fish ? '示例时长 · 实际按鱼的大小与火力蒸至熟透，以下方菜谱为准' : '烹饪示意 · 实际做法和时间以下方菜谱为准'}</p><span class="visually-hidden cooking-status" role="status"></span>
     </section>`;
     this.motion = matchMedia('(prefers-reduced-motion: reduce)');
     this.onMotion = () => this.play();
     this.onClose = () => { this.stop(); this.setStage(4); };
-    this.closest('dialog')?.addEventListener('close', this.onClose);
+    this.dialog = this.closest('dialog');
+    this.dialog?.addEventListener('close', this.onClose);
     this.motion.addEventListener('change', this.onMotion);
     this.querySelector('.cooking-replay').addEventListener('click', () => this.play());
+    this.querySelectorAll('[data-chef]').forEach(button => button.addEventListener('click', () => {
+      this.chef = button.dataset.chef;
+      this.querySelector('.cooking-chef').setAttribute('href', chefAssets[this.chef]);
+      this.querySelector('.cooking-chef-name').textContent = this.chef === 'mom' ? '妈妈掌勺' : '爸爸掌勺';
+      this.querySelectorAll('[data-chef]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+    }));
     this.play();
   }
   disconnectedCallback() {
     this.stop(); this.motion?.removeEventListener('change', this.onMotion);
-    document.querySelector('#dialog')?.removeEventListener('close', this.onClose);
+    this.dialog?.removeEventListener('close', this.onClose);
   }
   stop() { cancelAnimationFrame(this.frame); }
   setStage(stage) {
     if (this.dataset.stage === String(stage)) return;
     this.dataset.stage = stage;
     this.querySelector('.cooking-cue').textContent = this.cues[Math.min(stage, 3)];
+    if (this.mins) this.querySelector('.cue-time b').textContent = this.mins[Math.min(stage, 3)];
     this.querySelectorAll('.cooking-steps li').forEach((el, i) => {
       el.classList.toggle('current', i === Math.min(stage, 3));
       el.classList.toggle('complete', i < stage);

@@ -47,3 +47,4 @@ body{background:radial-gradient(ellipse at 85% 5%,#f1e3cb55,transparent 45%),var
 @media(max-width:1250px){.brand .brand-mark{width:43px;height:43px}.brand b{font-size:20px}.brand small{font-size:7px}.hero-art{width:180px;height:125px}}
 @media(max-width:1050px){.brand .brand-mark{width:35px;height:35px}.brand b{font-size:17px}.hero-art{width:220px;height:150px}}
 @media(max-width:650px){.brand .brand-mark{width:48px;height:48px}.brand b{font-size:25px}.brand small{font-size:8px}.hero{padding-bottom:24px;min-height:170px}.hero-art{width:118px;height:92px;right:6px;bottom:9px;opacity:.75}.hero-copy{max-width:100%}.hero-copy p{max-width:210px}}
+@media(max-width:650px){.knowledge-heading .page-heading{flex-wrap:wrap;justify-content:flex-start}.knowledge-heading .page-heading>div{width:100%}}

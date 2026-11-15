@@ -85,3 +85,34 @@ cooking-scene[data-recipe="steamed-fish"][data-stage="4"] .fish-steam{opacity:.3
 @keyframes fish-pour{from{stroke-dashoffset:100;opacity:0}35%,80%{opacity:1}to{stroke-dashoffset:0;opacity:0}}
 @media(max-width:650px){.cooking-scene{padding:14px 12px 10px}.cooking-cue{font-size:13px}.cooking-replay{font-size:11px;padding:8px!important}.cooking-host{width:68px;padding:4px 4px 20px;margin-left:0}.cooking-host:before{left:20px;width:28px}.cooking-host span{font-size:8px}.cooking-stove{width:calc(100% - 72px);min-height:150px}.cooking-steps{gap:5px}.cooking-steps li{gap:4px;font-size:11px}.cooking-steps li span{width:19px;height:19px}.cooking-footnote{font-size:9px}}
 @media(prefers-reduced-motion:reduce){cooking-scene *,cooking-scene *:before{animation:none!important;transition:none!important}.cooking-plate,.pan-food,.pan-oil{opacity:1!important}}
+/* Colleague's fish scene: chef in the SVG, in-scene captions and reference timing. */
+.cooking-controls{display:flex;align-items:center;gap:8px}
+cooking-scene[data-recipe="steamed-fish"] .cooking-intro{align-items:flex-start;flex-wrap:wrap}
+.cooking-chef-name{display:block;margin-top:6px;font-size:14px;color:#4b4137}
+.cooking-chef-pick{display:flex;gap:4px}
+.cooking-chef-pick button{min-width:44px;min-height:44px;border:1px solid #dfd2c0;border-radius:10px;background:#fffaf0;color:#5b5048;font:inherit;font-size:12px;cursor:pointer}
+.cooking-chef-pick button[aria-pressed="true"]{background:#b04a26;border-color:#b04a26;color:#fff}
+.cooking-chef-pick button:focus-visible{outline:3px solid #426f82;outline-offset:3px}
+cooking-scene[data-recipe="steamed-fish"] .cooking-stage{position:relative;display:block;padding-bottom:48px}
+cooking-scene[data-recipe="steamed-fish"] .cooking-stove{width:100%}
+.cooking-chef{transform-box:fill-box;transform-origin:50% 100%;filter:drop-shadow(0 4px 5px #60402622)}
+cooking-scene[data-stage="0"] .cooking-chef{animation:fish-chef-wash 1.1s ease-in-out infinite}
+cooking-scene[data-stage="1"] .cooking-chef{animation:fish-chef-sprinkle .8s ease-in-out infinite}
+cooking-scene[data-stage="2"] .cooking-chef{animation:fish-chef-lid 1.6s ease-in-out infinite}
+cooking-scene[data-stage="3"] .cooking-chef{animation:fish-chef-pour 1.3s ease-in-out infinite}
+@keyframes fish-chef-wash{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(4px) rotate(3.4deg) scaleY(.985)}}
+@keyframes fish-chef-sprinkle{0%,100%{transform:translateY(0) rotate(0)}45%{transform:translateY(-9px) rotate(3deg) scaleY(1.01)}}
+@keyframes fish-chef-lid{0%,100%{transform:translateX(0) rotate(0)}45%{transform:translateX(8px) rotate(2deg) scaleY(.99)}}
+@keyframes fish-chef-pour{0%,100%{transform:translateX(8px) rotate(0)}50%{transform:translate(8px,28px) rotate(-2deg)}}
+.cue-bar{position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;gap:10px;padding:9px 12px;background:#fffcf4f5;border:1px solid #e7d8c0;border-radius:12px;box-shadow:0 5px 12px #78563216}
+.cue-time{flex-shrink:0;display:flex;align-items:baseline;gap:3px;padding:5px 9px;border-radius:9px;background:#b04a26;color:#fff;font-weight:700}
+.cue-time b{font-size:26px;line-height:1}.cue-time span{font-size:11px}.cue-time small{font-size:10px}
+.cue-bar .cooking-cue{margin:0;font-size:13px;line-height:1.5;color:#4b4137}
+cooking-scene[data-recipe="steamed-fish"] .cooking-steps{padding:10px;background:#fffbf3;border:1px solid #ede1cc;border-radius:12px}
+cooking-scene[data-recipe="steamed-fish"] .cooking-steps li{align-items:flex-start;gap:6px}
+cooking-scene[data-recipe="steamed-fish"] .cooking-steps li>span:first-child{flex-shrink:0}
+cooking-scene[data-recipe="steamed-fish"] .cooking-steps .cooking-step-label{display:block;width:auto;height:auto;background:none;border-radius:0;font-size:12px;text-align:left;color:inherit}
+.cooking-step-label small{display:block;margin-top:3px;font-size:10px;font-weight:400;white-space:nowrap}
+.cue-total{display:flex;justify-content:flex-end;align-items:baseline;gap:5px;margin:10px 0 0;font-size:11px;color:#5b5048}.cue-total b{font-size:16px;color:#a74725}
+@media(max-width:650px){cooking-scene[data-recipe="steamed-fish"] .cooking-stage{padding-bottom:60px}.cooking-controls{gap:5px}.cue-bar{left:0;right:0;padding:8px;gap:7px}.cue-time{padding:5px 6px}.cue-time b{font-size:20px}.cue-time small{display:none}.cue-bar .cooking-cue{font-size:12px}cooking-scene[data-recipe="steamed-fish"] .cooking-steps{padding:8px 5px}cooking-scene[data-recipe="steamed-fish"] .cooking-steps li{gap:4px}.cooking-step-label small{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.cooking-chef{animation:none!important}}
