@@ -63,6 +63,13 @@ with sync_playwright() as p:
     run = result['state']['agentLastRun']
     assert run['ok'] and result['state']['agent']['provider'] == 'pi', run
     assert any(t['name'] == 'get_kitchen_context' and t['ok'] for t in run['toolCalls']), run
+    expect(page.locator('.chat-message.assistant')).to_have_count(0)
+    expect(page.locator('.assistant-message').last.locator('.chat-bubble')).to_have_text(result['reply'])
+    assert page.locator('.assistant-message').last.evaluate('''e => {
+        const box=e.querySelector('.chat-bubble').getBoundingClientRect();
+        const area=e.closest('.chat-messages').getBoundingClientRect();
+        return getComputedStyle(e).position === 'static' && box.top >= area.top && box.bottom <= area.bottom;
+    }''')
     page.screenshot(path=str(OUT / 'online-agent.png'), full_page=True)
     record('real Pi tool call through GitHub Pages and tunnel, menus preserved')
     page.reload(wait_until='domcontentloaded', timeout=60000)
