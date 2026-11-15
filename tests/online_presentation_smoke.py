@@ -12,6 +12,7 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={'width':1512,'height':1080})
     errors, pending, failed_assets = [], [], []
     page.on('pageerror',lambda e: errors.append(str(e)))
+    page.on('requestfailed',lambda r: print('Network failure:',r.url,r.failure,flush=True))
     page.on('response',lambda r: failed_assets.append(r.url) if r.status>=400 and '/maitaishao/' in r.url else None)
     page.route(config['apiBase'] + '/api/state',lambda route: pending.append(route))
     page.goto(SITE,wait_until='domcontentloaded',timeout=60000)
@@ -30,7 +31,12 @@ with sync_playwright() as p:
     assert page.locator('.menu-intro').bounding_box()['height'] <= 90
     expect(page.locator('.hero')).to_have_count(0)
     expect(page.locator('.brand-mark')).to_have_attribute('src','./assets/maitaishao-icon-v2.png')
-    page.wait_for_function('Array.from(document.querySelectorAll(".brand-mark,.menu-intro img")).every(e=>e.complete && e.naturalWidth>0)',timeout=45000)
+    try:
+        page.wait_for_function('Array.from(document.querySelectorAll(".brand-mark,.menu-intro img")).every(e=>e.complete && e.naturalWidth>0)',timeout=45000)
+    except Exception:
+        print(page.locator('.brand-mark,.menu-intro img').evaluate_all('(items)=>items.map(e=>({src:e.src,complete:e.complete,width:e.naturalWidth}))'),flush=True)
+        page.screenshot(path=str(OUT / 'online-asset-failure.png'),timeout=10000)
+        raise
     page.screenshot(path=str(OUT / 'online-compact-header.png'),full_page=True)
     page.locator('nav [data-page="family"]').click()
     page.wait_for_function('Array.from(document.querySelectorAll(".portrait img")).every(e=>e.complete && e.naturalWidth>0)',timeout=45000)
@@ -59,7 +65,7 @@ with sync_playwright() as p:
     page.keyboard.press('Escape')
     page.locator('[data-action="recipe"]').first.click()
     page.get_by_role('button',name='编辑知识',exact=True).click()
-    expect(page.locator('#recipe-form')).to_be_visible()
+    expect(page.locator('#recipe-edit-form')).to_be_visible()
     page.keyboard.press('Escape')
     page.locator('nav [data-page="menu"]').click()
     page.set_viewport_size({'width':390,'height':844})
