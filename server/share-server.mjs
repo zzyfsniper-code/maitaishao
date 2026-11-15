@@ -11,7 +11,10 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Vary', 'Origin');
   if (origin && origin !== config.allowedOrigin) return reply(403, '此页面无权连接厨房。');
   if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
-  if (!req.url?.startsWith('/api/')) return reply(404, '这里只提供厨房接口。');
+  let target;
+  try { target = new URL(req.url || '/', 'http://127.0.0.1:4317'); }
+  catch { return reply(400, '请求地址无效。'); }
+  if (target.origin !== 'http://127.0.0.1:4317' || !target.pathname.startsWith('/api/')) return reply(404, '这里只提供厨房接口。');
   if (req.method === 'OPTIONS') {
     res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '600' }); return res.end();
   }
@@ -25,12 +28,12 @@ const server = http.createServer(async (req, res) => {
     return reply(401, '请输入正确的组员访问口令。');
   }
   attempts.delete(ip);
-  if (req.url.split('?')[0] === '/api/agent/config') return reply(403, '模型连接配置请在主厨电脑本地修改。');
+  if (target.pathname === '/api/agent/config') return reply(403, '模型连接配置请在主厨电脑本地修改。');
   if (!['GET', 'POST'].includes(req.method)) return reply(405, '不支持此请求。');
   try {
     const chunks = []; let bytes = 0;
     for await (const chunk of req) { bytes += chunk.length; if (bytes > 9_000_000) return reply(413, '图片过大，请压缩后上传。'); chunks.push(chunk); }
-    const response = await fetch('http://127.0.0.1:4317' + req.url, { method: req.method,
+    const response = await fetch(target, { method: req.method,
       headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1:4317' },
       body: req.method === 'POST' ? Buffer.concat(chunks) : undefined, signal: AbortSignal.timeout(130000), redirect: 'error' });
     res.writeHead(response.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
