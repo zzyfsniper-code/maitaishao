@@ -47,5 +47,41 @@ cooking-scene[data-stage="4"] .cooking-fire{opacity:.5}
 @keyframes fire-flicker{from{transform:scaleY(.84)}to{transform:scaleY(1.14)}}
 @keyframes steam-rise{from{transform:translateY(10px);opacity:.6}to{transform:translateY(-25px);opacity:0}}
 @keyframes plate-serve{from{transform:translateY(18px) scale(.55);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+.fish-scene{aspect-ratio:540/280}
+.fish-platter{transform-origin:270px 174px}
+.fish-pot-back,.fish-pot-front,.fish-lid,.fish-rinse,.fish-ginger,.fish-scallions,.fish-steam,.fish-seasoning,.fish-sauce{opacity:0}
+.fish-lid{transform-origin:270px 164px}
+.fish-board{transition:opacity .3s}
+cooking-scene[data-recipe="steamed-fish"][data-stage="0"] .fish-rinse{opacity:1}
+cooking-scene[data-recipe="steamed-fish"][data-stage="0"] .fish-rinse path{animation:fish-water 650ms ease-in infinite}
+.fish-rinse path:nth-child(2){animation-delay:120ms!important}.fish-rinse path:nth-child(3){animation-delay:240ms!important}
+cooking-scene[data-recipe="steamed-fish"]:is([data-stage="1"],[data-stage="2"],[data-stage="3"],[data-stage="4"]) :is(.fish-ginger,.fish-scallions){opacity:1}
+cooking-scene[data-recipe="steamed-fish"][data-stage="1"] .fish-ginger{animation:fish-garnish .65s ease-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="1"] .fish-scallions{animation:fish-garnish .65s .25s ease-out both}
+cooking-scene[data-recipe="steamed-fish"]:is([data-stage="2"],[data-stage="3"],[data-stage="4"]) .fish-board{opacity:0}
+cooking-scene[data-recipe="steamed-fish"][data-stage="2"] :is(.fish-pot-back,.fish-pot-front){opacity:1;animation:fish-pot-in .4s ease-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="2"] .fish-platter{transform:scale(.84);transition:transform .45s ease}
+cooking-scene[data-recipe="steamed-fish"][data-stage="2"] .fish-lid{opacity:1;animation:fish-lid-close .65s ease-in-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="2"] .fish-steam{opacity:1}
+cooking-scene[data-recipe="steamed-fish"][data-stage="2"] .fish-steam path{animation:fish-steam-rise 1.2s .4s ease-out infinite}
+.fish-steam path:nth-child(2){animation-delay:.7s!important}.fish-steam path:nth-child(3){animation-delay:1s!important}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] .fish-lid{animation:fish-lid-open .65s ease-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] :is(.fish-pot-back,.fish-pot-front){animation:fish-pot-out .6s ease-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] .fish-platter{animation:fish-serve .65s ease-out both}
+cooking-scene[data-recipe="steamed-fish"]:is([data-stage="3"],[data-stage="4"]) .fish-sauce{opacity:.4}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] .fish-seasoning{opacity:1}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] .fish-sauce-bowl{transform-origin:432px 88px;animation:fish-bowl-tilt 1.4s ease-in-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="3"] .fish-pour{stroke-dasharray:100;animation:fish-pour .9s .25s ease-out both}
+cooking-scene[data-recipe="steamed-fish"][data-stage="4"] .fish-steam{opacity:.3}
+@keyframes fish-water{from{transform:translateY(-12px);opacity:0}30%{opacity:1}to{transform:translateY(40px);opacity:0}}
+@keyframes fish-garnish{from{transform:translateY(-48px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fish-pot-in{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fish-lid-close{from{transform:translate(30px,-65px) rotate(12deg);opacity:0}to{transform:translate(0,0) rotate(0);opacity:1}}
+@keyframes fish-steam-rise{from{transform:translateY(8px);opacity:0}30%{opacity:.8}to{transform:translateY(-23px);opacity:0}}
+@keyframes fish-lid-open{from{transform:translate(0,0);opacity:1}to{transform:translate(50px,-65px) rotate(12deg);opacity:0}}
+@keyframes fish-pot-out{from{transform:translateY(0);opacity:1}to{transform:translateY(18px);opacity:0}}
+@keyframes fish-serve{from{transform:scale(.84)}to{transform:scale(1)}}
+@keyframes fish-bowl-tilt{0%,100%{transform:rotate(0);opacity:0}25%,75%{transform:rotate(-24deg);opacity:1}}
+@keyframes fish-pour{from{stroke-dashoffset:100;opacity:0}35%,80%{opacity:1}to{stroke-dashoffset:0;opacity:0}}
 @media(max-width:650px){.cooking-scene{padding:14px 12px 10px}.cooking-cue{font-size:13px}.cooking-replay{font-size:11px;padding:8px!important}.cooking-host{width:68px;padding:4px 4px 20px;margin-left:0}.cooking-host:before{left:20px;width:28px}.cooking-host span{font-size:8px}.cooking-stove{width:calc(100% - 72px);min-height:150px}.cooking-steps{gap:5px}.cooking-steps li{gap:4px;font-size:11px}.cooking-steps li span{width:19px;height:19px}.cooking-footnote{font-size:9px}}
 @media(prefers-reduced-motion:reduce){cooking-scene *,cooking-scene *:before{animation:none!important;transition:none!important}.cooking-plate,.pan-food,.pan-oil{opacity:1!important}}
