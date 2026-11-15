@@ -1,0 +1,32 @@
+:root{--bg:#fbf5e9;--paper:#fffdf7;--ink:#323d3e;--muted:#726e63;--green:#426f82;--green-dark:#335a6c;--sage:#e8f0ef;--line:#e8dfce;--gold:#d6a269;--peach:#f6e2cc;--red:#a9472c;--shadow:0 6px 24px #63482e08}
+body{background:radial-gradient(ellipse at 85% 5%,#f1e3cb55,transparent 45%),var(--bg)}
+.sidebar{background:#f8f0e1;border-color:#e8ddc9}
+.brand{gap:10px;padding:0 2px}
+.brand .brand-mark{width:57px;height:57px;border-radius:16px;object-fit:contain;box-shadow:0 3px 8px #4c6e7e1c}
+.brand b{font-size:23px;letter-spacing:3px;color:#343d3b;white-space:nowrap}
+.brand small{font-size:8px;letter-spacing:1.4px;color:#776956}
+.nav button.active{background:#e1ecec;color:#315e71}
+.topbar{background:#fffdf5e8}
+.hero{background:#f5ecda;border-color:#e8dcc5;min-height:190px;overflow:hidden}
+.hero h2{color:#3c4644}.hero-copy{position:relative;z-index:1}
+.hero-art{width:230px;height:155px;flex-shrink:0;overflow:hidden;border-radius:14px;background:#fbf2e4}
+.hero-art img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
+.button.primary,.send-button{background:#aa512f;color:#fff;border-color:#aa512f}
+.button.primary:hover,.send-button:hover{background:#914326;border-color:#914326}
+.assistant-head{background:#f1f1e7}.assistant-logo{background:#d9e7ea;color:#426f82}
+.meal-card,.panel,.member-card,.recipe-card{box-shadow:0 4px 16px #70583705}
+.recipe-visual{background:#eee9dc}.recipe-visual.meat{background:#f5e5d6}.recipe-visual.vegetable{background:#eaf0e2}
+.day-tab.active{background:#456f80;color:#fff;border-color:#456f80}
+.nutrition-note{font-size:12px;line-height:1.7;color:#5e665e;margin:0 0 16px;padding:12px 15px;border-radius:10px;background:#f2eee2}
+.nutrition-note b{color:#426f82}.nutrition-note small{display:block;font-size:11px;color:#736e62;margin-top:3px}
+.access-page{min-height:100dvh;display:grid;place-items:center;padding:24px}
+.access-card{width:min(100%,420px);padding:36px;background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:0 16px 60px #63482e10}
+.access-card>img{display:block;width:84px;height:84px;object-fit:contain;border-radius:22px;margin-bottom:24px}
+.access-card h1{font-size:26px;margin:10px 0}.access-card p{color:var(--muted);line-height:1.7}
+.access-card label{display:block;font-weight:600;margin:26px 0 8px}.access-card input{display:block;width:100%;min-height:48px;font-size:18px}
+.access-card button{width:100%;min-height:48px;margin-top:16px}.access-card small{display:block;color:var(--muted);line-height:1.7}
+.access-card .access-error{min-height:24px;color:var(--red);font-size:13px;margin:10px 0}
+@media(max-width:480px){.access-page{padding:16px}.access-card{padding:26px}}
+@media(max-width:1250px){.brand .brand-mark{width:43px;height:43px}.brand b{font-size:20px}.brand small{font-size:7px}.hero-art{width:180px;height:125px}}
+@media(max-width:1050px){.brand .brand-mark{width:35px;height:35px}.brand b{font-size:17px}.hero-art{width:220px;height:150px}}
+@media(max-width:650px){.brand .brand-mark{width:48px;height:48px}.brand b{font-size:25px}.brand small{font-size:8px}.hero{padding-bottom:24px;min-height:170px}.hero-art{width:118px;height:92px;right:6px;bottom:9px;opacity:.75}.hero-copy{max-width:100%}.hero-copy p{max-width:210px}}

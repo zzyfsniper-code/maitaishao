@@ -1,0 +1,51 @@
+cooking-scene{display:block;margin-bottom:22px}
+.cooking-scene{padding:20px 22px 12px;border-radius:20px;background:#f6efe2;border:1px solid #e9dfce;overflow:hidden}
+.cooking-intro{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cooking-eyebrow{font-size:11px;color:#926347;letter-spacing:4px;font-weight:700}
+.cooking-cue{margin:5px 0 0;color:#4c5146;font-size:15px;font-weight:600;line-height:1.5}
+.cooking-replay{min-height:44px;flex-shrink:0;background:#fffaf0!important;border-color:#dfd2c0!important;color:#794b30!important}
+.cooking-stage{display:flex;align-items:center;min-width:0;gap:4px}
+.cooking-host{width:110px;flex-shrink:0;position:relative;transform:rotate(-4deg);padding:6px 6px 24px;background:#fffaf2;border-radius:9px;box-shadow:0 5px 12px #55422c16;margin:5px 3px 0 2px}
+.cooking-host:before{content:'';position:absolute;width:38px;height:13px;background:#e8cf9eaa;top:-5px;left:37px;transform:rotate(6deg);z-index:1}
+.cooking-host img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:5px;display:block}
+.cooking-host span{position:absolute;font-size:10px;bottom:6px;left:0;width:100%;text-align:center;color:#73644c}
+.cooking-stove{display:block;width:calc(100% - 114px);height:auto;aspect-ratio:540/230;min-width:0;overflow:visible}
+.cooking-pan{transform-origin:310px 120px}
+.cooking-fire{transform-origin:303px 164px}
+.cooking-knife{transform-origin:163px 112px}
+.prep-bits{transform-origin:119px 145px}
+.cooking-steam path{opacity:.45}
+.cooking-plate{opacity:0;transform-origin:431px 170px}
+.pan-oil,.pan-food,.cooking-fire{opacity:0}
+.cooking-steps{display:grid;grid-template-columns:repeat(4,1fr);list-style:none;padding:0;margin:0;gap:10px}
+.cooking-steps li{display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;color:#776e61;border-top:2px solid #ded6c7;padding-top:10px}
+.cooking-steps li span{display:grid;place-items:center;width:22px;height:22px;background:#e8e0d2;border-radius:50%;font-size:10px;font-weight:700}
+.cooking-steps .current{color:#9a4326;border-color:#c5653e;font-weight:700}
+.cooking-steps .current span{background:#c5653e;color:#fff}
+.cooking-steps .complete{border-color:#86aab1;color:#496e73}
+.cooking-footnote{margin:12px 0 0;text-align:center;color:#7a7166;font-size:10px;line-height:1.6}
+cooking-scene[data-stage="0"] .cooking-knife{animation:knife-chop 240ms ease-in-out 3}
+cooking-scene[data-stage="0"] .prep-bits{animation:prep-hop 240ms ease-in-out 3}
+cooking-scene:is([data-stage="1"],[data-stage="2"],[data-stage="3"],[data-stage="4"]) :is(.pan-food,.pan-oil,.cooking-fire){opacity:1}
+cooking-scene[data-stage="1"] .food-piece{animation:food-drop 370ms cubic-bezier(.2,.7,.3,1) both}
+.piece-2{--delay:70ms}.piece-3{--delay:140ms}.piece-4{--delay:210ms}.piece-5{--delay:280ms}
+cooking-scene[data-stage="1"] .food-piece{animation-delay:var(--delay,0ms)}
+cooking-scene[data-stage="2"] .cooking-pan{animation:pan-toss 340ms ease-in-out 3}
+cooking-scene[data-stage="2"] .pan-food{animation:food-toss 340ms ease-in-out 3;transform-origin:310px 108px}
+cooking-scene[data-stage="2"] .cooking-host{animation:host-bounce 440ms ease-in-out 3}
+cooking-scene:is([data-stage="1"],[data-stage="2"],[data-stage="3"]) .cooking-fire{animation:fire-flicker 260ms ease-in-out infinite alternate}
+cooking-scene:is([data-stage="1"],[data-stage="2"],[data-stage="3"]) .cooking-steam{animation:steam-rise 1.6s linear infinite}
+cooking-scene[data-stage="3"] .cooking-plate{opacity:1;animation:plate-serve 700ms cubic-bezier(.34,1.56,.64,1) both}
+cooking-scene[data-stage="4"] .cooking-plate{opacity:1}
+cooking-scene[data-stage="4"] .cooking-fire{opacity:.5}
+@keyframes knife-chop{0%,100%{transform:translateY(-10px) rotate(-20deg)}50%{transform:translateY(9px) rotate(10deg)}}
+@keyframes prep-hop{50%{transform:translateY(-5px) rotate(5deg)}}
+@keyframes food-drop{from{transform:translateY(-96px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes pan-toss{0%,100%{transform:rotate(0)}30%{transform:rotate(-7deg)}70%{transform:rotate(7deg)}}
+@keyframes food-toss{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-28px) rotate(150deg)}}
+@keyframes host-bounce{0%,100%{transform:rotate(-4deg)}50%{transform:translateY(-5px) rotate(0) scale(1.035)}}
+@keyframes fire-flicker{from{transform:scaleY(.84)}to{transform:scaleY(1.14)}}
+@keyframes steam-rise{from{transform:translateY(10px);opacity:.6}to{transform:translateY(-25px);opacity:0}}
+@keyframes plate-serve{from{transform:translateY(18px) scale(.55);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@media(max-width:650px){.cooking-scene{padding:14px 12px 10px}.cooking-cue{font-size:13px}.cooking-replay{font-size:11px;padding:8px!important}.cooking-host{width:68px;padding:4px 4px 20px;margin-left:0}.cooking-host:before{left:20px;width:28px}.cooking-host span{font-size:8px}.cooking-stove{width:calc(100% - 72px);min-height:150px}.cooking-steps{gap:5px}.cooking-steps li{gap:4px;font-size:11px}.cooking-steps li span{width:19px;height:19px}.cooking-footnote{font-size:9px}}
+@media(prefers-reduced-motion:reduce){cooking-scene *,cooking-scene *:before{animation:none!important;transition:none!important}.cooking-plate,.pan-food,.pan-oil{opacity:1!important}}
